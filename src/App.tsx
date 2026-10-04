@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import { Icons, TOOL_COLORS } from './Icons'
+import { Sign } from './tools/Sign'
 import { Scan } from './tools/Scan'
 import { Compress, ImageToPdf, Merge, Ocr, PdfToImages, PdfToWord, WordToPdf, Rotate, Split } from './tools/tools'
 
@@ -13,6 +14,7 @@ const TOOLS = [
   { to: '/scan', icon: 'scan', name: 'סורק מסמכים', desc: 'צילום דף לסריקה נקייה' },
   { to: '/word-to-pdf', icon: 'word', name: 'המרת Word ל-PDF', desc: 'מסמך docx ל-PDF' },
   { to: '/pdf-to-word', icon: 'word', name: 'המרת PDF ל-Word', desc: 'טקסט לעריכה ב-docx' },
+  { to: '/sign', icon: 'sign', name: 'חתימה וטקסט', desc: 'חתום והוסף טקסט ל-PDF' },
   { to: '/pdf-to-images', icon: 'toimg', name: 'PDF לתמונות', desc: 'כל עמוד לתמונה' },
 ]
 
@@ -58,6 +60,7 @@ export default function App() {
       <Route path="/scan" element={<Scan />} />
       <Route path="/word-to-pdf" element={<WordToPdf />} />
       <Route path="/pdf-to-word" element={<PdfToWord />} />
+      <Route path="/sign" element={<Sign />} />
       <Route path="/ocr" element={<Ocr />} />
       <Route path="/pdf-to-images" element={<PdfToImages />} />
       <Route path="*" element={<Home />} />

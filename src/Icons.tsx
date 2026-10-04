@@ -26,6 +26,7 @@ export const Icons: Record<string, (s?: number) => ReactNode> = {
   scan: (s) => S(<><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" /><path d="M4 12h16" /></>, s),
   camera: (s) => S(<><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13" r="3.5" /></>, s),
   word: (s) => S(<><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /><path d="m8.5 11 1.5 6 2-5 2 5 1.5-6" /></>, s),
+  sign: (s) => S(<><path d="M3 18c3-6 5-9 7-9 2 0 0 7 2 7s2-4 4-4 1 2 3 2" /><path d="M4 21h16" /></>, s),
   pdf: (s) => S(<><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>, s),
 }
-export const TOOL_COLORS: Record<string, string> = { image: '#f58220', merge: '#6c5ce7', split: '#e84a6f', rotate: '#12a594', compress: '#2f80ed', toimg: '#e5a000', ocr: '#0e9f8e', scan: '#d6336c', word: '#2b6cd9' }
+export const TOOL_COLORS: Record<string, string> = { image: '#f58220', merge: '#6c5ce7', split: '#e84a6f', rotate: '#12a594', compress: '#2f80ed', toimg: '#e5a000', ocr: '#0e9f8e', scan: '#d6336c', word: '#2b6cd9', sign: '#7048e8' }

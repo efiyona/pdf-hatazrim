@@ -146,3 +146,17 @@ select,input{font:inherit;padding:11px 12px;border-radius:14px;border:1.5px soli
 .qbox polygon{fill:#f5822033;stroke:var(--or);stroke-width:3;vector-effect:non-scaling-stroke}
 .qh{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:#fff;border:4px solid var(--or);box-shadow:0 2px 8px #0006;touch-action:none;cursor:grab}
 .mrow{display:flex;gap:8px;flex-wrap:wrap}
+.stool{display:flex;gap:8px;margin:12px 0}.stool .go{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;margin:0}
+.spages2{display:flex;flex-direction:column;gap:14px;margin:12px 0 90px}
+.spv{position:relative;width:100%;background:#fff;box-shadow:0 3px 16px #14264f26;border-radius:6px;overflow:visible;touch-action:pan-y}
+.spc{width:100%;height:100%;display:block;border-radius:6px}
+.pn{position:absolute;top:6px;inset-inline-start:6px;background:#14264fcc;color:#fff;font-size:.72rem;padding:2px 8px;border-radius:99px;pointer-events:none}
+.sitem{position:absolute;touch-action:none;cursor:move}.sitem img{width:100%;height:100%;display:block;pointer-events:none}
+.sitem.sel{outline:2px dashed var(--or);outline-offset:2px}
+.sdel{position:absolute;top:-16px;right:-14px;width:28px;height:28px;border-radius:50%;border:0;background:var(--err);color:#fff;display:grid;place-items:center;cursor:pointer}
+.sedit{position:absolute;top:-16px;left:-6px;height:28px;border-radius:14px;border:0;background:var(--navy);color:#fff;padding:0 12px;font:inherit;font-size:.8rem;cursor:pointer}
+.shandle{position:absolute;right:-13px;bottom:-13px;width:26px;height:26px;border-radius:50%;background:#fff;border:4px solid var(--or);cursor:nwse-resize;touch-action:none}
+.pad{width:100%;aspect-ratio:900/360;background:#fff;border:2px dashed #b9c6e6;border-radius:16px;touch-action:none;background-image:linear-gradient(transparent 74%,#dde3f0 74%,#dde3f0 75%,transparent 75%)}
+.dot{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer}.dot.on{box-shadow:0 0 0 3px var(--or)}
+.ta{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:10px;font:inherit;resize:vertical}
+.stickyGo{position:sticky;bottom:12px;z-index:5}
