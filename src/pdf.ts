@@ -5,7 +5,7 @@ import { zipSync } from 'fflate'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
-export type Progress = (pct: number, label: string) => void
+export type Progress = (pct: number, label: string, idx?: number) => void
 export const tick = () => new Promise<void>((r) => setTimeout(r, 0))
 
 export class UserError extends Error {}
@@ -86,7 +86,7 @@ export async function imagesToPdf(
   const doc = await PDFDocument.create()
   let done = 0
   for (const f of files) {
-    onProgress((done / files.length) * 100, `מעבד תמונה ${done + 1} מתוך ${files.length}: ${f.name}`)
+    onProgress((done / files.length) * 100, `מעבד תמונה ${done + 1} מתוך ${files.length}: ${f.name}`, done)
     await tick()
     try {
       const bmp = await toBitmap(f)
@@ -139,7 +139,7 @@ export async function loadPdfLib(file: File) {
 export async function mergePdfs(files: File[], onProgress: Progress) {
   const out = await PDFDocument.create()
   for (let i = 0; i < files.length; i++) {
-    onProgress((i / files.length) * 100, `מאחד ${i + 1} מתוך ${files.length}: ${files[i].name}`)
+    onProgress((i / files.length) * 100, `מאחד ${i + 1} מתוך ${files.length}: ${files[i].name}`, i)
     await tick()
     const src = await loadPdfLib(files[i])
     const pages = await out.copyPages(src, src.getPageIndices())

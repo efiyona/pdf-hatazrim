@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { UserError, fmtSize, type Progress } from './pdf'
+import { Icons, TOOL_COLORS } from './Icons'
 
 type ToastKind = 'success' | 'error' | 'info' | 'warn'
 interface T { id: number; kind: ToastKind; text: string }
@@ -21,9 +22,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts" role="status" aria-live="polite">
         {items.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`}>
-            <span>{{ success: '✅', error: '⚠️', info: 'ℹ️', warn: '🟠' }[t.kind]}</span>
+            <span className="ticon">{{ success: Icons.check(20), error: Icons.warn(20), info: Icons.info(20), warn: Icons.warn(20) }[t.kind]}</span>
             <p>{t.text}</p>
-            <button aria-label="סגור" onClick={() => setItems((x) => x.filter((y) => y.id !== t.id))}>✕</button>
+            <button aria-label="סגור" onClick={() => setItems((x) => x.filter((y) => y.id !== t.id))}>{Icons.x(16)}</button>
           </div>
         ))}
       </div>
@@ -33,12 +34,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function ToolPage({ icon, title, hint, children }: { icon: string; title: string; hint: string; children: ReactNode }) {
   return (
-    <main className="tool">
-      <Link to="/" className="back">→ כל הכלים</Link>
-      <h1><span className="ico">{icon}</span> {title}</h1>
-      <p className="hint">{hint}</p>
-      {children}
-    </main>
+    <div className="shell">
+      <header className="hero small">
+        <Link to="/" className="backbtn" aria-label="חזרה">{Icons.back(22)}</Link>
+        <div className="herotitle">
+          <span className="chip" style={{ background: TOOL_COLORS[icon] }}>{Icons[icon](22)}</span>
+          <div><h1>{title}</h1><p>{hint}</p></div>
+        </div>
+      </header>
+      <main className="sheet">{children}</main>
+    </div>
   )
 }
 
@@ -57,15 +62,16 @@ export function useJob() {
   const [busy, setBusy] = useState(false)
   const [pct, setPct] = useState(0)
   const [label, setLabel] = useState('')
+  const [idx, setIdx] = useState(-1)
   useEffect(() => {
     if (!busy) return
     const h = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
   }, [busy])
-  const progress: Progress = useCallback((p, l) => { setPct(p); setLabel(l) }, [])
+  const progress: Progress = useCallback((p, l, i) => { setPct(p); setLabel(l); if (i !== undefined) setIdx(i) }, [])
   const run = useCallback(async (fn: (p: Progress) => Promise<string | void>) => {
-    setBusy(true); setPct(0); setLabel('מתחיל…')
+    setBusy(true); setPct(0); setLabel('מתחיל…'); setIdx(-1)
     try {
       const msg = await fn(progress)
       setPct(100)
@@ -80,7 +86,7 @@ export function useJob() {
       setBusy(false)
     }
   }, [progress, toast])
-  return { busy, pct, label, run }
+  return { busy, pct, label, idx, run }
 }
 
 export function DropZone({ accept, multiple, onFiles, text }: { accept: (f: File) => boolean; multiple?: boolean; onFiles: (f: File[]) => void; text: string }) {
@@ -109,32 +115,44 @@ export function DropZone({ accept, multiple, onFiles, text }: { accept: (f: File
       role="button" tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}
     >
-      <div className="big">📂</div>
+      <div className="folder">{Icons.folder(40)}</div>
       <b>{text}</b>
       <span>גרור לכאן או לחץ לבחירה</span>
+      <span className="browse">בחירת קבצים</span>
+      <em>הקבצים נשארים במכשיר שלך</em>
       <input ref={input} type="file" hidden multiple={multiple} onChange={(e) => { if (e.target.files) take(e.target.files); e.target.value = '' }} />
     </div>
   )
 }
 
-export function FileList({ files, onChange }: { files: File[]; onChange: (f: File[]) => void }) {
+export function FileList({ files, onChange, busy, activeIdx = -1, pct = 0 }: { files: File[]; onChange: (f: File[]) => void; busy?: boolean; activeIdx?: number; pct?: number }) {
   const move = (i: number, d: number) => {
     const j = i + d
     if (j < 0 || j >= files.length) return
     const c = [...files]; [c[i], c[j]] = [c[j], c[i]]; onChange(c)
   }
   return (
+    <><h3 className="flh">קבצים ({files.length})</h3>
     <ul className="files">
-      {files.map((f, i) => (
-        <li key={f.name + i + f.size}>
-          <Thumb file={f} />
-          <div className="meta"><b>{f.name}</b><span>{fmtSize(f.size)}</span></div>
-          <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="למעלה">▲</button>
-          <button onClick={() => move(i, 1)} disabled={i === files.length - 1} aria-label="למטה">▼</button>
-          <button onClick={() => onChange(files.filter((_, k) => k !== i))} aria-label="הסר">✕</button>
-        </li>
-      ))}
-    </ul>
+      {files.map((f, i) => {
+        const state = !busy ? 'idle' : i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'wait'
+        return (
+          <li key={f.name + i + f.size} className={state}>
+            <Thumb file={f} />
+            <div className="meta">
+              <b>{f.name}</b>
+              <span><bdi>{fmtSize(f.size)}</bdi>{state === 'done' ? ' · הושלם ✓' : state === 'active' ? ` · ${Math.max(5, Math.min(95, Math.round((pct * files.length) % 100)))}%` : state === 'wait' ? ' · ממתין' : ''}</span>
+              {busy && <div className="mini"><div style={{ width: state === 'done' ? '100%' : state === 'active' ? `${Math.max(8, Math.min(95, (pct * files.length) % 100 || 8))}%` : '0%' }} /></div>}
+            </div>
+            {!busy && <>
+              <button className="ib" onClick={() => move(i, -1)} disabled={i === 0} aria-label="למעלה">{Icons.up(18)}</button>
+              <button className="ib" onClick={() => move(i, 1)} disabled={i === files.length - 1} aria-label="למטה">{Icons.down(18)}</button>
+              <button className="ib" onClick={() => onChange(files.filter((_, k) => k !== i))} aria-label="הסר">{Icons.x(18)}</button>
+            </>}
+          </li>
+        )
+      })}
+    </ul></>
   )
 }
 
@@ -146,5 +164,5 @@ function Thumb({ file }: { file: File }) {
     setUrl(u)
     return () => URL.revokeObjectURL(u)
   }, [file])
-  return url ? <img src={url} alt="" className="thumb" /> : <div className="thumb ph">{/pdf$/i.test(file.type) ? 'PDF' : '🖼️'}</div>
+  return url ? <img src={url} alt="" className="thumb" /> : <div className="thumb ph">{/pdf$/i.test(file.type) ? Icons.pdf(22) : Icons.image(22)}</div>
 }

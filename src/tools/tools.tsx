@@ -36,10 +36,10 @@ export function ImageToPdf() {
     return `ה-PDF מוכן (${fmtSize(data.length)})${skipped ? `, ${skipped} תמונות דולגו` : ''}`
   })
   return (
-    <ToolPage icon="🖼️" title="תמונה ל-PDF" hint="JPG, PNG, HEIC, WEBP ועוד. הסדר כאן הוא סדר העמודים.">
+    <ToolPage icon="image" title="תמונה ל-PDF" hint="JPG, PNG, HEIC, WEBP ועוד. הסדר כאן הוא סדר העמודים.">
       <DropZone multiple accept={isImg} text="בחר תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
-        <FileList files={files} onChange={setFiles} />
+        <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
         <div className="opts">
           <label>גודל עמוד<select value={size} onChange={(e) => setSize(e.target.value)}><option value="a4">A4</option><option value="letter">Letter</option><option value="fit">כגודל התמונה</option></select></label>
           {size !== 'fit' && <label>כיוון<select value={landscape ? 'l' : 'p'} onChange={(e) => setLandscape(e.target.value === 'l')}><option value="p">לאורך</option><option value="l">לרוחב</option></select></label>}
@@ -62,10 +62,10 @@ export function Merge() {
     return `אוחדו ${files.length} קבצים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="🧩" title="איחוד PDF" hint="חבר כמה קבצים לאחד. סדר הרשימה = סדר באיחוד.">
+    <ToolPage icon="merge" title="איחוד PDF" hint="חבר כמה קבצים לאחד. סדר הרשימה = סדר באיחוד.">
       <DropZone multiple accept={isPdf} text="בחר קבצי PDF" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
-        <FileList files={files} onChange={setFiles} />
+        <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
         <Job job={job} />
         <button className="go" disabled={job.busy || files.length < 2} onClick={go}>{files.length < 2 ? 'הוסף עוד קובץ' : 'אחד'}</button>
       </>}
@@ -123,7 +123,7 @@ export function Split() {
     return `נשמר PDF עם ${keep.length} עמודים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="✂️" title="פיצול ומחיקת עמודים" hint="סמן עמודים (לחיצה או טווח), ובחר אם לשמור אותם או למחוק אותם.">
+    <ToolPage icon="split" title="פיצול ומחיקת עמודים" hint="סמן עמודים (לחיצה או טווח), ובחר אם לשמור אותם או למחוק אותם.">
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'} · {fmtSize(file.size)}</span><button onClick={reset}>החלף קובץ</button></div>
@@ -159,12 +159,12 @@ export function Rotate() {
     return `סובבו ${changed} עמודים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="🔄" title="סיבוב עמודים" hint="לחץ על עמוד כדי לסובב אותו 90°, או סובב הכל בבת אחת.">
+    <ToolPage icon="rotate" title="סיבוב עמודים" hint="לחץ על עמוד כדי לסובב אותו 90°, או סובב הכל בבת אחת.">
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'}</span><button onClick={reset}>החלף קובץ</button></div>
           {doc && <>
-            <div className="opts"><button onClick={() => all(-90)}>↺ הכל שמאלה</button><button onClick={() => all(90)}>↻ הכל ימינה</button><button onClick={() => setRot({})}>אפס</button></div>
+            <div className="opts"><button onClick={() => all(-90)}>הכל שמאלה ↺</button><button onClick={() => all(90)}>הכל ימינה ↻</button><button onClick={() => setRot({})}>אפס</button></div>
             <PageGrid doc={doc} selected={new Set()} rotations={rot} onToggle={(i) => bump(i)} />
             <Job job={job} />
             <button className="go" disabled={job.busy || changed === 0} onClick={go}>{changed ? `שמור (${changed} עמודים סובבו)` : 'לחץ על עמוד כדי לסובב'}</button>
@@ -187,7 +187,7 @@ export function Compress() {
     return `הקובץ הוקטן מ-${fmtSize(file.size)} ל-${fmtSize(data.length)} (${Math.round((1 - data.length / file.size) * 100)}%)`
   })
   return (
-    <ToolPage icon="🗜️" title="כיווץ PDF" hint="כל עמוד הופך לתמונה מכווצת. מצוין לסריקות ותמונות. שים לב: הטקסט יהפוך לתמונה (אי אפשר לסמן/לחפש בו).">
+    <ToolPage icon="compress" title="כיווץ PDF" hint="כל עמוד הופך לתמונה מכווצת. מצוין לסריקות ותמונות. שים לב: הטקסט יהפוך לתמונה (אי אפשר לסמן/לחפש בו).">
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
@@ -212,7 +212,7 @@ export function PdfToImages() {
     return r.single ? 'התמונה מוכנה' : `ה-ZIP מוכן (${fmtSize(r.data.length)})`
   })
   return (
-    <ToolPage icon="📸" title="PDF לתמונות" hint="כל עמוד הופך לתמונה. כמה עמודים = קובץ ZIP.">
+    <ToolPage icon="toimg" title="PDF לתמונות" hint="כל עמוד הופך לתמונה. כמה עמודים = קובץ ZIP.">
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
