@@ -218,7 +218,7 @@ export function Sign() {
   })
   return (
     <ToolPage icon="sign" title="חתימה וטקסט על PDF" hint="פתח PDF, הוסף חתימה וטקסט, גרור למקום ושנה גודל. הכל קורה במכשיר." result={out} onReset={() => setOut(undefined)}>
-      {!doc || !file ? <DropZone accept={(f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)} text="בחר PDF לחתימה" onFiles={(f) => open(f[0])} /> : <>
+      {!doc || !file ? <DropZone types="application/pdf,.pdf" accept={(f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)} text="בחר PDF לחתימה" onFiles={(f) => open(f[0])} /> : <>
         <div className="bar2"><b>{file.name}</b> <span>{ratios.length} עמ׳ · {fmtSize(file.size)}</span><button onClick={() => { setDoc(undefined); setFile(undefined); setItems([]) }}>החלף קובץ</button></div>
         <div className="stool">
           <button className="go sm" onClick={() => setPad(true)}>{Icons.sign(16)} הוסף חתימה</button>

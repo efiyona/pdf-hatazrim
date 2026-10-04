@@ -40,7 +40,7 @@ export function ImageToPdf() {
   })
   return (
     <ToolPage icon="image" title="תמונה ל-PDF" hint="JPG, PNG, HEIC, WEBP ועוד. הסדר כאן הוא סדר העמודים." result={out} onReset={() => setOut(undefined)}>
-      <DropZone multiple accept={isImg} text="בחר תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
+      <DropZone multiple types="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.gif,.bmp,.avif" accept={isImg} text="בחר תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
         <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
         <div className="opts">
@@ -67,7 +67,7 @@ export function Merge() {
   })
   return (
     <ToolPage icon="merge" title="איחוד PDF" hint="חבר כמה קבצים לאחד. סדר הרשימה = סדר באיחוד." result={out} onReset={() => setOut(undefined)}>
-      <DropZone multiple accept={isPdf} text="בחר קבצי PDF" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
+      <DropZone multiple types="application/pdf,.pdf" accept={isPdf} text="בחר קבצי PDF" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
         <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
         <Job job={job} />
@@ -129,7 +129,7 @@ export function Split() {
   })
   return (
     <ToolPage icon="split" title="פיצול ומחיקת עמודים" hint="סמן עמודים (לחיצה או טווח), ובחר אם לשמור אותם או למחוק אותם." result={out} onReset={() => setOut(undefined)}>
-      {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
+      {!file ? <DropZone types="application/pdf,.pdf" accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'} · {fmtSize(file.size)}</span><button onClick={reset}>החלף קובץ</button></div>
           {doc && <>
@@ -166,7 +166,7 @@ export function Rotate() {
   })
   return (
     <ToolPage icon="rotate" title="סיבוב עמודים" hint="לחץ על עמוד כדי לסובב אותו 90°, או סובב הכל בבת אחת." result={out} onReset={() => setOut(undefined)}>
-      {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
+      {!file ? <DropZone types="application/pdf,.pdf" accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'}</span><button onClick={reset}>החלף קובץ</button></div>
           {doc && <>
@@ -195,7 +195,7 @@ export function Compress() {
   })
   return (
     <ToolPage icon="compress" title="כיווץ PDF" hint="כל עמוד הופך לתמונה מכווצת. מצוין לסריקות ותמונות. שים לב: הטקסט יהפוך לתמונה (אי אפשר לסמן/לחפש בו)." result={out} onReset={() => setOut(undefined)}>
-      {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
+      {!file ? <DropZone types="application/pdf,.pdf" accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
           <div className="opts"><label>עוצמה<select value={level} onChange={(e) => setLevel(e.target.value as typeof level)}><option value="light">קלה (איכות גבוהה)</option><option value="medium">בינונית</option><option value="strong">חזקה (הכי קטן)</option></select></label></div>
@@ -221,7 +221,7 @@ export function PdfToImages() {
   })
   return (
     <ToolPage icon="toimg" title="PDF לתמונות" hint="כל עמוד הופך לתמונה. כמה עמודים = קובץ ZIP." result={out} onReset={() => setOut(undefined)}>
-      {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
+      {!file ? <DropZone types="application/pdf,.pdf" accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
           <div className="opts">
@@ -248,7 +248,7 @@ export function Ocr() {
   })
   return (
     <ToolPage icon="ocr" title="זיהוי טקסט (OCR)" hint="סריקה או תמונה הופכות ל-PDF עם שכבת טקסט: אפשר לחפש ולהעתיק. הכל קורה במכשיר." result={out} onReset={() => setOut(undefined)}>
-      <DropZone multiple accept={(f) => isPdf(f) || isImg(f)} text="בחר PDF סרוק או תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
+      <DropZone multiple types="application/pdf,.pdf,image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.gif,.bmp,.avif" accept={(f) => isPdf(f) || isImg(f)} text="בחר PDF סרוק או תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
         <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
         <div className="opts">
@@ -277,7 +277,7 @@ export function WordToPdf() {
   })
   return (
     <ToolPage icon="word" title="המרת Word ל-PDF" hint="מסמך docx הופך ל-PDF בעמודי A4, כולל עברית מימין לשמאל, טבלאות ותמונות." result={out} onReset={() => setOut(undefined)}>
-      <DropZone accept={isDocx} text="בחר מסמך Word (docx)" onFiles={(f) => { if (/\.doc$/i.test(f[0].name)) toast('error', 'רק docx נתמך'); else setFile(f[0]) }} />
+      <DropZone types=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" accept={isDocx} text="בחר מסמך Word (docx)" onFiles={(f) => { if (/\.doc$/i.test(f[0].name)) toast('error', 'רק docx נתמך'); else setFile(f[0]) }} />
       {file && <>
         <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
         <p className="note">הטקסט ב-PDF שנוצר הוא חלק מהתמונה של העמוד, כך שהעיצוב נשמר, אבל אי אפשר לסמן ולהעתיק ממנו. להפיכתו לחיפושי אפשר להעביר אותו דרך "זיהוי טקסט (OCR)".</p>
@@ -300,7 +300,7 @@ export function PdfToWord() {
   })
   return (
     <ToolPage icon="word" title="המרת PDF ל-Word" hint="מוציא את הטקסט מה-PDF לקובץ docx שאפשר לערוך, עם תמיכה בעברית." result={out} onReset={() => setOut(undefined)}>
-      <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} />
+      <DropZone types="application/pdf,.pdf" accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} />
       {file && <>
         <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
         <p className="note">עובד על PDF עם טקסט אמיתי. מעבירים טקסט ופסקאות, בלי טבלאות ותמונות. לסריקות: קודם "זיהוי טקסט (OCR)".</p>

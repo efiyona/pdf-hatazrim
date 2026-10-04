@@ -89,7 +89,7 @@ export function useJob() {
   return { busy, pct, label, idx, run }
 }
 
-export function DropZone({ accept, multiple, onFiles, text }: { accept: (f: File) => boolean; multiple?: boolean; onFiles: (f: File[]) => void; text: string }) {
+export function DropZone({ accept, types, multiple, onFiles, text }: { accept: (f: File) => boolean; types?: string; multiple?: boolean; onFiles: (f: File[]) => void; text: string }) {
   const toast = useToast()
   const [over, setOver] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -120,7 +120,7 @@ export function DropZone({ accept, multiple, onFiles, text }: { accept: (f: File
       <span>גרור לכאן או לחץ לבחירה</span>
       <span className="browse">בחירת קבצים</span>
       <em>הקבצים נשארים במכשיר שלך</em>
-      <input ref={input} type="file" hidden multiple={multiple} onChange={(e) => { if (e.target.files) take(e.target.files); e.target.value = '' }} />
+      <input ref={input} type="file" accept={types} hidden multiple={multiple} onChange={(e) => { if (e.target.files) take(e.target.files); e.target.value = '' }} />
     </div>
   )
 }
