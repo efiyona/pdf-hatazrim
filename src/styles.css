@@ -98,3 +98,23 @@ select,input{font:inherit;padding:11px 12px;border-radius:14px;border:1.5px soli
 .files li.dragging{box-shadow:0 14px 30px #14264f33;border-color:var(--or);transform:scale(1.015);z-index:2;position:relative}
 .files li{transition:box-shadow .15s,transform .15s}
 .flh small{font-weight:400;color:#a2abc0}
+
+@media (min-width:900px){
+  html{background:var(--bg)}
+  body{background:radial-gradient(90% 60% at 85% 0,#2a4a96 0,transparent 70%),linear-gradient(var(--navy) 0 330px,var(--bg) 330px);min-height:100vh}
+  .shell{max-width:1080px;background:transparent;padding:0 24px 48px}
+  .hero{background:none;padding:34px 8px 92px}
+  .hero.small{padding:26px 8px 82px}
+  .hero h1{font-size:2.3rem}
+  .herotitle h1{font-size:1.8rem}
+  .sheet{border-radius:36px;margin-top:-56px;padding:36px 40px 56px;min-height:60vh;box-shadow:0 24px 60px #14264f26}
+  .grid.tools{grid-template-columns:repeat(3,1fr);gap:16px}
+  .featured{padding:24px 28px}.featured b{font-size:1.45rem}
+  .tile{padding:22px}
+  .sheet .drop,.sheet .files,.sheet .opts,.sheet .go,.sheet .progress,.sheet .flh,.sheet .result,.sheet .bar2,.sheet .grid.pages,.sheet .linkbtn{max-width:860px;margin-inline:auto}
+  .sheet .go{display:block}.sheet .ractions .go{display:flex}
+  .sheet .linkbtn{display:block}
+  .drop{padding:56px 16px}
+  .grid.pages{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .toasts{left:auto;right:24px;align-items:flex-end}
+}
