@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import { Icons, TOOL_COLORS } from './Icons'
+import { Scan } from './tools/Scan'
 import { Compress, ImageToPdf, Merge, Ocr, PdfToImages, Rotate, Split } from './tools/tools'
 
 const TOOLS = [
@@ -9,6 +10,7 @@ const TOOLS = [
   { to: '/rotate', icon: 'rotate', name: 'סיבוב', desc: 'עמוד אחד או הכל' },
   { to: '/compress', icon: 'compress', name: 'כיווץ', desc: 'להקטין קובץ כבד' },
   { to: '/ocr', icon: 'ocr', name: 'זיהוי טקסט (OCR)', desc: 'סריקה לטקסט שאפשר לחפש' },
+  { to: '/scan', icon: 'scan', name: 'סורק מסמכים', desc: 'צילום דף לסריקה נקייה' },
   { to: '/pdf-to-images', icon: 'toimg', name: 'PDF לתמונות', desc: 'כל עמוד לתמונה' },
 ]
 
@@ -51,6 +53,7 @@ export default function App() {
       <Route path="/split" element={<Split />} />
       <Route path="/rotate" element={<Rotate />} />
       <Route path="/compress" element={<Compress />} />
+      <Route path="/scan" element={<Scan />} />
       <Route path="/ocr" element={<Ocr />} />
       <Route path="/pdf-to-images" element={<PdfToImages />} />
       <Route path="*" element={<Home />} />

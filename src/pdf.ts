@@ -46,7 +46,7 @@ function isHeic(f: File) {
 }
 
 /** Decode any browser-readable image (and HEIC) to a bitmap-ready blob. */
-async function toBitmap(file: File): Promise<ImageBitmap> {
+export async function toBitmap(file: File): Promise<ImageBitmap> {
   let blob: Blob = file
   if (isHeic(file)) {
     const { default: heic2any } = await import('heic2any')
