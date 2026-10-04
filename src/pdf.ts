@@ -257,5 +257,5 @@ export async function pdfToImages(file: File, format: 'jpeg' | 'png', scale: num
   return { single: false as const, name: `${baseName(file)}-images.zip`, data: zipSync(files, { level: 0 }), images }
 }
 
-export interface Output { data: Uint8Array; name: string; mime: string; images?: Uint8Array[]; imageMime?: string }
+export interface Output { data: Uint8Array; name: string; mime: string; images?: Uint8Array[]; imageMime?: string; note?: string }
 export const pdfOut = (data: Uint8Array, name: string): Output => ({ data, name, mime: 'application/pdf' })

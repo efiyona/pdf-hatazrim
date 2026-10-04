@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DropZone, FileList, ProgressBar, ToolPage, useJob, useToast } from '../ui'
 import PageGrid from '../PageGrid'
+import { docxToPdf, pdfToDocx } from '../word'
 import { ocrToPdf, OCR_LANGS, type OcrLang } from '../ocr'
 import {
   IMAGE_EXT, baseName, compressPdf, extractPages, fmtSize, imagesToPdf,
@@ -256,6 +257,55 @@ export function Ocr() {
         <p className="note">הזיהוי רץ עמוד אחר עמוד ויכול לקחת כמה שניות לעמוד. השאר את הלשונית פתוחה.</p>
         <Job job={job} />
         <button className="go" disabled={job.busy} onClick={go}>זהה טקסט</button>
+      </>}
+    </ToolPage>
+  )
+}
+
+const isDocx = (f: File) => /\.docx$/i.test(f.name) || f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+export function WordToPdf() {
+  const [out, setOut] = useState<Output>()
+  const [file, setFile] = useState<File>()
+  const job = useJob(); const toast = useToast()
+  const go = () => job.run(async (p) => {
+    if (!file) return
+    const data = await docxToPdf(file, p)
+    setOut(pdfOut(data, `${baseName(file)}.pdf`))
+    return `ה-PDF מוכן (${fmtSize(data.length)})`
+  })
+  return (
+    <ToolPage icon="word" title="המרת Word ל-PDF" hint="מסמך docx הופך ל-PDF בעמודי A4, כולל עברית מימין לשמאל, טבלאות ותמונות." result={out} onReset={() => setOut(undefined)}>
+      <DropZone accept={isDocx} text="בחר מסמך Word (docx)" onFiles={(f) => { if (/\.doc$/i.test(f[0].name)) toast('error', 'רק docx נתמך'); else setFile(f[0]) }} />
+      {file && <>
+        <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
+        <p className="note">הטקסט ב-PDF שנוצר הוא חלק מהתמונה של העמוד, כך שהעיצוב נשמר, אבל אי אפשר לסמן ולהעתיק ממנו. להפיכתו לחיפושי אפשר להעביר אותו דרך "זיהוי טקסט (OCR)".</p>
+        <Job job={job} />
+        <button className="go" disabled={job.busy} onClick={go}>המר ל-PDF</button>
+      </>}
+    </ToolPage>
+  )
+}
+
+export function PdfToWord() {
+  const [out, setOut] = useState<Output>()
+  const [file, setFile] = useState<File>()
+  const job = useJob(); const warn = useBigWarn()
+  const go = () => job.run(async (p) => {
+    if (!file) return
+    const r = await pdfToDocx(file, p)
+    setOut({ data: r.data, name: `${baseName(file)}.docx`, mime: DOCX_MIME, note: 'קובץ Word עם הטקסט והפסקאות של ה-PDF (עריכה חופשית). טבלאות ותמונות לא מועברות.' })
+    return `קובץ ה-Word מוכן (${fmtSize(r.data.length)})`
+  })
+  return (
+    <ToolPage icon="word" title="המרת PDF ל-Word" hint="מוציא את הטקסט מה-PDF לקובץ docx שאפשר לערוך, עם תמיכה בעברית." result={out} onReset={() => setOut(undefined)}>
+      <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} />
+      {file && <>
+        <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
+        <p className="note">עובד על PDF עם טקסט אמיתי. מעבירים טקסט ופסקאות, בלי טבלאות ותמונות. לסריקות: קודם "זיהוי טקסט (OCR)".</p>
+        <Job job={job} />
+        <button className="go" disabled={job.busy} onClick={go}>המר ל-Word</button>
       </>}
     </ToolPage>
   )

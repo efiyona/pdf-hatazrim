@@ -1,7 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import { Icons, TOOL_COLORS } from './Icons'
 import { Scan } from './tools/Scan'
-import { Compress, ImageToPdf, Merge, Ocr, PdfToImages, Rotate, Split } from './tools/tools'
+import { Compress, ImageToPdf, Merge, Ocr, PdfToImages, PdfToWord, WordToPdf, Rotate, Split } from './tools/tools'
 
 const TOOLS = [
   { to: '/image-to-pdf', icon: 'image', name: 'תמונה ל-PDF', desc: 'JPG, PNG, HEIC ועוד' },
@@ -11,6 +11,8 @@ const TOOLS = [
   { to: '/compress', icon: 'compress', name: 'כיווץ', desc: 'להקטין קובץ כבד' },
   { to: '/ocr', icon: 'ocr', name: 'זיהוי טקסט (OCR)', desc: 'סריקה לטקסט שאפשר לחפש' },
   { to: '/scan', icon: 'scan', name: 'סורק מסמכים', desc: 'צילום דף לסריקה נקייה' },
+  { to: '/word-to-pdf', icon: 'word', name: 'המרת Word ל-PDF', desc: 'מסמך docx ל-PDF' },
+  { to: '/pdf-to-word', icon: 'word', name: 'המרת PDF ל-Word', desc: 'טקסט לעריכה ב-docx' },
   { to: '/pdf-to-images', icon: 'toimg', name: 'PDF לתמונות', desc: 'כל עמוד לתמונה' },
 ]
 
@@ -54,6 +56,8 @@ export default function App() {
       <Route path="/rotate" element={<Rotate />} />
       <Route path="/compress" element={<Compress />} />
       <Route path="/scan" element={<Scan />} />
+      <Route path="/word-to-pdf" element={<WordToPdf />} />
+      <Route path="/pdf-to-word" element={<PdfToWord />} />
       <Route path="/ocr" element={<Ocr />} />
       <Route path="/pdf-to-images" element={<PdfToImages />} />
       <Route path="*" element={<Home />} />

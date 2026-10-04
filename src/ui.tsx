@@ -286,7 +286,7 @@ export function ResultCard({ out, onReset }: { out: Output; onReset: () => void 
         <button className="go alt" onClick={share}>{Icons.share(20)} שיתוף</button>
       </div>
       <div className="preview">
-        {out.images ? <ImagePreview images={out.images} mime={out.imageMime ?? 'image/jpeg'} /> : <PdfPreview data={out.data} />}
+        {out.images ? <ImagePreview images={out.images} mime={out.imageMime ?? 'image/jpeg'} /> : out.mime === 'application/pdf' ? <PdfPreview data={out.data} /> : <p className="note">{out.note ?? ''}</p>}
       </div>
       <button className="linkbtn" onClick={onReset}>חזרה לעריכה</button>
     </section>
