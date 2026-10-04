@@ -28,6 +28,24 @@ async function imageToCanvas(f: File): Promise<HTMLCanvasElement> {
   return c
 }
 
+const HEB = /[\u0590-\u05FF]/
+type W = { text: string; bbox: { x0: number; x1: number } }
+/** Visual (x) order -> logical reading order, for Hebrew paragraphs with embedded English/numbers. */
+function logicalOrder<T extends W>(words: T[]): T[] {
+  const vis = [...words].sort((a, b) => a.bbox.x0 - b.bbox.x0)
+  const heb = vis.filter((w) => HEB.test(w.text)).length
+  const latin = vis.filter((w) => /[A-Za-z]/.test(w.text)).length
+  if (heb === 0 || heb < latin) return vis
+  const units: T[][] = []
+  for (const w of vis) {
+    const ltr = !HEB.test(w.text)
+    const last = units[units.length - 1]
+    if (ltr && last && !HEB.test(last[0].text)) last.push(w)
+    else units.push([w])
+  }
+  return units.reverse().flat()
+}
+
 /** Runs OCR on a PDF or a list of images; returns a searchable PDF (image + invisible text layer). */
 export async function ocrToPdf(files: File[], lang: OcrLang, onProgress: Progress, onWarn: (m: string) => void) {
   // Build a list of lazy page sources
@@ -74,19 +92,30 @@ export async function ocrToPdf(files: File[], lang: OcrLang, onProgress: Progres
       const img = await out.embedJpg(new Uint8Array(await blob.arrayBuffer()))
       const page = out.addPage([W, H])
       page.drawImage(img, { x: 0, y: 0, width: W, height: H })
-      // Invisible text layer. Tesseract returns words already in logical order; keep it as is.
+      // Invisible text layer. Word order is rebuilt from geometry (tesseract's own order breaks on mixed Hebrew/English lines).
       for (const block of res.data.blocks ?? []) for (const para of block.paragraphs) for (const line of para.lines) {
-        const ordered = line.words.filter((w) => w.text.trim())
+        const ordered = logicalOrder(line.words.filter((w) => w.text.trim()))
+        const ly1 = line.bbox.y1 * k, lh = (line.bbox.y1 - line.bbox.y0) * k
         for (const w of ordered) {
-          const text = w.text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
-          const bw = (w.bbox.x1 - w.bbox.x0) * k, bh = (w.bbox.y1 - w.bbox.y0) * k
-          if (bw < 1 || bh < 1) continue
-          let size = Math.max(4, bh * 0.85)
-          try {
-            const wd = font.widthOfTextAtSize(text, size)
-            if (wd > bw) size = Math.max(3, size * (bw / wd))
-            page.drawText(text, { x: w.bbox.x0 * k, y: H - w.bbox.y1 * k + bh * 0.15, size, font, opacity: 0 })
-          } catch { /* glyph missing in font: skip word */ }
+          const full = w.text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+          const bw = (w.bbox.x1 - w.bbox.x0) * k, bh = Math.max(lh, 1)
+          if (bw < 1 || bh < 1 || !full) continue
+          // Split mixed Hebrew/Latin/digit tokens into single-script pieces (logical order). Hebrew-containing tokens run right to left.
+          const parts = full.match(/[\u0590-\u05FF][^A-Za-z0-9]*|[A-Za-z0-9][^\u0590-\u05FF]*|[^\u0590-\u05FFA-Za-z0-9]+/g) ?? [full]
+          const rtl = HEB.test(full)
+          const total = full.length
+          let off = 0
+          for (const part of parts) {
+            const pw = (bw * part.length) / total
+            const x = rtl ? w.bbox.x0 * k + bw - off - pw : w.bbox.x0 * k + off
+            off += pw
+            let size = Math.max(4, bh * 0.85)
+            try {
+              const wd = font.widthOfTextAtSize(part, size)
+              if (wd > pw) size = Math.max(3, size * (pw / wd))
+              page.drawText(part, { x, y: H - ly1 + bh * 0.15, size, font, opacity: 0 })
+            } catch { /* glyph missing in font: skip piece */ }
+          }
         }
       }
     }
