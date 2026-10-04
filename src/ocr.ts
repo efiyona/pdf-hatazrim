@@ -3,7 +3,6 @@ import { PDFDocument } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import { IMAGE_EXT, UserError, openPdfJs, renderPage, tick, type Progress } from './pdf'
 
-const HEB = /[\u0590-\u05FF]/
 export const OCR_LANGS = { 'heb+eng': 'עברית + אנגלית', heb: 'עברית בלבד', eng: 'אנגלית בלבד' } as const
 export type OcrLang = keyof typeof OCR_LANGS
 
@@ -75,14 +74,11 @@ export async function ocrToPdf(files: File[], lang: OcrLang, onProgress: Progres
       const img = await out.embedJpg(new Uint8Array(await blob.arrayBuffer()))
       const page = out.addPage([W, H])
       page.drawImage(img, { x: 0, y: 0, width: W, height: H })
-      // Invisible text layer in LOGICAL order (tesseract's wasm build returns Hebrew in visual order)
+      // Invisible text layer. Tesseract returns words already in logical order; keep it as is.
       for (const block of res.data.blocks ?? []) for (const para of block.paragraphs) for (const line of para.lines) {
-        const words = line.words.filter((w) => w.text.trim())
-        const rtl = words.filter((w) => HEB.test(w.text)).length * 2 >= words.length
-        const ordered = rtl ? [...words].reverse() : words
-        // keep logical order inside each word, draw each word at its own box
+        const ordered = line.words.filter((w) => w.text.trim())
         for (const w of ordered) {
-          const text = HEB.test(w.text) ? [...w.text].reverse().join('') : w.text
+          const text = w.text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
           const bw = (w.bbox.x1 - w.bbox.x0) * k, bh = (w.bbox.y1 - w.bbox.y0) * k
           if (bw < 1 || bh < 1) continue
           let size = Math.max(4, bh * 0.85)
