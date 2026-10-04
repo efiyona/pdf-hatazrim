@@ -22,6 +22,7 @@ export const Icons: Record<string, (s?: number) => ReactNode> = {
   warn: (s) => S(<><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17h.01" /></>, s),
   download: (s) => S(<><path d="M12 4v11" /><path d="m7 11 5 5 5-5" /><path d="M5 20h14" /></>, s),
   share: (s) => S(<><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6" /></>, s),
+  ocr: (s) => S(<><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" /><path d="M8 9h8M8 12.5h8M8 16h5" /></>, s),
   pdf: (s) => S(<><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>, s),
 }
-export const TOOL_COLORS: Record<string, string> = { image: '#f58220', merge: '#6c5ce7', split: '#e84a6f', rotate: '#12a594', compress: '#2f80ed', toimg: '#e5a000' }
+export const TOOL_COLORS: Record<string, string> = { image: '#f58220', merge: '#6c5ce7', split: '#e84a6f', rotate: '#12a594', compress: '#2f80ed', toimg: '#e5a000', ocr: '#0e9f8e' }

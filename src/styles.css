@@ -118,3 +118,8 @@ select,input{font:inherit;padding:11px 12px;border-radius:14px;border:1.5px soli
   .grid.pages{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
   .toasts{left:auto;right:24px;align-items:flex-end}
 }
+
+.note{color:var(--mut);font-size:.85rem;margin:10px 4px 0}
+
+.fname{display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--mut)}
+.fnrow{display:flex;align-items:center;gap:6px}.fnrow input{flex:1;min-width:0;font-size:1rem}.fext{color:var(--mut);font-size:1rem}

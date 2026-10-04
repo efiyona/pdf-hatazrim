@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DropZone, FileList, ProgressBar, ToolPage, useJob, useToast } from '../ui'
 import PageGrid from '../PageGrid'
+import { ocrToPdf, OCR_LANGS, type OcrLang } from '../ocr'
 import {
   IMAGE_EXT, baseName, compressPdf, extractPages, fmtSize, imagesToPdf,
   mergePdfs, openPdfJs, pdfOut, pdfToImages, rotatePdf, type Output, type PdfDoc,
@@ -230,6 +231,32 @@ export function PdfToImages() {
           <button className="go" disabled={job.busy} onClick={go}>המר</button>
         </>
       )}
+    </ToolPage>
+  )
+}
+
+export function Ocr() {
+  const [out, setOut] = useState<Output>()
+  const [files, setFiles] = useState<File[]>([])
+  const [lang, setLang] = useState<OcrLang>('heb+eng')
+  const job = useJob(); const toast = useToast(); const warn = useBigWarn()
+  const go = () => job.run(async (p) => {
+    const data = await ocrToPdf(files, lang, p, (m) => toast('warn', m))
+    setOut(pdfOut(data, `${files.length === 1 ? baseName(files[0]) : 'scan'}-ocr.pdf`))
+    return `המסמך חיפושי ומוכן (${fmtSize(data.length)})`
+  })
+  return (
+    <ToolPage icon="ocr" title="זיהוי טקסט (OCR)" hint="סריקה או תמונה הופכות ל-PDF עם שכבת טקסט: אפשר לחפש ולהעתיק. הכל קורה במכשיר." result={out} onReset={() => setOut(undefined)}>
+      <DropZone multiple accept={(f) => isPdf(f) || isImg(f)} text="בחר PDF סרוק או תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
+      {files.length > 0 && <>
+        <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
+        <div className="opts">
+          <label>שפה<select value={lang} onChange={(e) => setLang(e.target.value as OcrLang)}>{Object.entries(OCR_LANGS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        </div>
+        <p className="note">הזיהוי רץ עמוד אחר עמוד ויכול לקחת כמה שניות לעמוד. השאר את הלשונית פתוחה.</p>
+        <Job job={job} />
+        <button className="go" disabled={job.busy} onClick={go}>זהה טקסט</button>
+      </>}
     </ToolPage>
   )
 }

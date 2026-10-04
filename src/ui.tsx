@@ -254,15 +254,19 @@ function ImagePreview({ images, mime }: { images: Uint8Array[]; mime: string }) 
 
 export function ResultCard({ out, onReset }: { out: Output; onReset: () => void }) {
   const toast = useToast()
-  const save = () => { download(out.data, out.name, out.mime); toast('success', 'ההורדה התחילה') }
+  const ext = (out.name.match(/\.[^.]+$/)?.[0] ?? '')
+  const [stem, setStem] = useState(out.name.slice(0, out.name.length - ext.length))
+  const clean = stem.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').trim() || 'document'
+  const fileName = clean + ext
+  const save = () => { download(out.data, fileName, out.mime); toast('success', 'ההורדה התחילה') }
   const share = async () => {
-    const file = new File([out.data as BlobPart], out.name, { type: out.mime })
+    const file = new File([out.data as BlobPart], fileName, { type: out.mime })
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
     try {
       if (nav.share && nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], title: out.name })
+        await nav.share({ files: [file], title: fileName })
       } else {
-        download(out.data, out.name, out.mime)
+        download(out.data, fileName, out.mime)
         toast('info', 'השיתוף הישיר לא נתמך בדפדפן הזה, אז הקובץ הורד. אפשר לשתף אותו משם.')
       }
     } catch (e) {
@@ -274,8 +278,9 @@ export function ResultCard({ out, onReset }: { out: Output; onReset: () => void 
     <section className="result">
       <div className="rhead">
         <span className="rok">{Icons.check(22)}</span>
-        <div className="meta"><b>הקובץ מוכן</b><span dir="auto">{out.name} · <bdi>{fmtSize(out.data.length)}</bdi></span></div>
+        <div className="meta"><b>הקובץ מוכן</b><span><bdi>{fmtSize(out.data.length)}</bdi></span></div>
       </div>
+      <label className="fname">שם הקובץ<span className="fnrow"><input value={stem} onChange={(e) => setStem(e.target.value)} dir="auto" aria-label="שם הקובץ" /><bdi className="fext">{ext}</bdi></span></label>
       <div className="ractions">
         <button className="go" onClick={save}>{Icons.download(20)} הורדה</button>
         <button className="go alt" onClick={share}>{Icons.share(20)} שיתוף</button>
