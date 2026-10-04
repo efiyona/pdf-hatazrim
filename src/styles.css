@@ -160,3 +160,4 @@ select,input{font:inherit;padding:11px 12px;border-radius:14px;border:1.5px soli
 .dot{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer}.dot.on{box-shadow:0 0 0 3px var(--or)}
 .ta{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:10px;font:inherit;resize:vertical}
 .stickyGo{position:sticky;bottom:12px;z-index:5}
+.stool{position:sticky;top:8px;z-index:6;background:#fffffff0;padding:8px;border-radius:18px;box-shadow:0 4px 16px #14264f26;backdrop-filter:blur(6px)}

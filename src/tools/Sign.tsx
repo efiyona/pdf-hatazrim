@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, degrees } from 'pdf-lib'
 import { DropZone, ProgressBar, ToolPage, useJob, useToast } from '../ui'
 import { Icons } from '../Icons'
 import { baseName, fmtSize, openPdfJs, pdfOut, renderPage, tick, UserError, type Output, type PdfDoc } from '../pdf'
@@ -160,7 +160,6 @@ export function Sign() {
   const [sel, setSel] = useState<number | null>(null)
   const [pad, setPad] = useState(false)
   const [txt, setTxt] = useState<{ edit?: Item } | null>(null)
-  const vis = useRef<Record<number, number>>({})
   const seq = useRef(0)
   const job = useJob(); const toast = useToast()
 
@@ -172,7 +171,12 @@ export function Sign() {
       setDoc(d); setRatios(rs); setFile(f); setItems([]); setSel(null)
     } catch (e) { toast('error', e instanceof UserError ? e.message : 'לא הצלחתי לפתוח את הקובץ.') }
   }
-  const curPage = () => { const e = Object.entries(vis.current).sort((a, b) => b[1] - a[1])[0]; return e && e[1] > 0 ? +e[0] : 1 }
+  const curPage = () => {
+    const els = Array.from(document.querySelectorAll('.spv')), vh = window.innerHeight
+    let best = 1, bo = -1
+    els.forEach((el, i) => { const r = el.getBoundingClientRect(); const o = Math.min(r.bottom, vh) - Math.max(r.top, 0); if (o > bo) { bo = o; best = i + 1 } })
+    return best
+  }
   const place = (url: string, aspect: number, wFrac: number, extra: Partial<Item> = {}) => {
     const page = curPage(), r = ratios[page - 1] || 0.7
     const w = wFrac, h = (w / aspect) * r
@@ -207,9 +211,13 @@ export function Sign() {
       const it = items[i]
       p(10 + (i / items.length) * 85, `מוסיף ${i + 1} מתוך ${items.length}`); await tick()
       const pg = pages[it.page - 1]
-      const { width: pw, height: ph } = pg.getSize()
+      const { width: w, height: h } = pg.getSize()
+      const rot = ((pg.getRotation().angle % 360) + 360) % 360
+      const Wd = rot % 180 ? h : w, Hd = rot % 180 ? w : h
       const img = await pdf.embedPng(await (await fetch(it.url)).arrayBuffer())
-      pg.drawImage(img, { x: it.x * pw, y: ph - (it.y + it.h) * ph, width: it.w * pw, height: it.h * ph })
+      const X = it.x * Wd, Y = (it.y + it.h) * Hd // displayed bottom-left of the item, from top-left of the page
+      const [u, v] = rot === 0 ? [X, h - Y] : rot === 90 ? [Y, X] : rot === 180 ? [w - X, Y] : [w - Y, h - X]
+      pg.drawImage(img, { x: u, y: v, width: it.w * Wd, height: it.h * Hd, rotate: degrees(rot) })
     }
     p(97, 'שומר…'); await tick()
     const data = await pdf.save()
@@ -227,7 +235,7 @@ export function Sign() {
         <p className="note">הוספה: הפריט נוסף לעמוד שמוצג כרגע. גרור כדי להזיז, וגרור את העיגול בפינה להגדלה.</p>
         <div className="spages2">
           {ratios.map((r, i) => <PageView key={i} doc={doc} n={i + 1} ratio={r} items={items.filter((x) => x.page === i + 1)} sel={sel} setSel={setSel} update={update}
-            remove={(id) => { setItems((x) => x.filter((y) => y.id !== id)); setSel(null) }} onVisible={(n, rt) => { vis.current[n] = rt }} edit={(it) => setTxt({ edit: it })} />)}
+            remove={(id) => { setItems((x) => x.filter((y) => y.id !== id)); setSel(null) }} onVisible={() => {}} edit={(it) => setTxt({ edit: it })} />)}
         </div>
         {job.busy && <ProgressBar pct={job.pct} label={job.label} />}
         <div className="stickyGo"><button className="go" disabled={job.busy || !items.length} onClick={save}>{items.length ? `שמור PDF (${items.length} פריטים)` : 'הוסף חתימה או טקסט'}</button></div>

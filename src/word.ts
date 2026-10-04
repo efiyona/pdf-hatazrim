@@ -12,7 +12,7 @@ const LTR_RE = /[A-Za-z]/
 
 interface Run { text: string; bold?: boolean; italic?: boolean; img?: HTMLImageElement }
 interface Para { runs: Run[]; size: number; bold?: boolean; indent: number; prefix?: string; after: number; rtl: boolean }
-type Block = { t: 'p'; p: Para } | { t: 'table'; rows: Para[][][] }
+type Block = { t: 'break' } | { t: 'p'; p: Para } | { t: 'table'; rows: Para[][][] }
 interface Seg { text: string; font: string; w: number; img?: HTMLImageElement; ih?: number }
 interface Line { segs: Seg[]; w: number; h: number }
 
@@ -38,8 +38,11 @@ function blocksOf(root: Element, out: Block[], depth = 0) {
   root.childNodes.forEach((n) => {
     if (n.nodeType !== 1) return
     const e = n as Element, tag = e.tagName.toLowerCase()
+    if (tag === 'hr') { out.push({ t: 'break' }); return }
+    const hasBreak = (tag === 'p' || /^h[1-6]$/.test(tag)) && e.querySelector('hr')
+    if (hasBreak) { e.querySelectorAll('hr').forEach((h) => h.remove()) }
     if (/^h[1-6]$/.test(tag)) out.push({ t: 'p', p: mkPara(e, ({ h1: 26, h2: 21, h3: 17 } as Record<string, number>)[tag] ?? 15, true, '', 0, 10) })
-    else if (tag === 'p' || tag === 'blockquote') out.push({ t: 'p', p: mkPara(e, 15, false) })
+    else if (tag === 'p' || tag === 'blockquote') { const pp = mkPara(e, 15, false); if (pp.runs.some((r) => r.text.trim() || r.img) || !hasBreak) out.push({ t: 'p', p: pp }) }
     else if (tag === 'ul' || tag === 'ol') {
       let i = 0
       e.childNodes.forEach((li) => {
@@ -64,6 +67,7 @@ function blocksOf(root: Element, out: Block[], depth = 0) {
       if (rows.length) out.push({ t: 'table', rows })
     } else if (tag === 'img') out.push({ t: 'p', p: { runs: [{ text: '', img: e as HTMLImageElement }], size: 15, indent: 0, after: 9, rtl: false } })
     else blocksOf(e, out, depth)
+    if (hasBreak) out.push({ t: 'break' })
   })
 }
 
@@ -131,7 +135,7 @@ export async function docxToPdf(file: File, onProgress: Progress): Promise<Uint8
   const mammoth = await import('mammoth')
   let html: string
   try {
-    html = (await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })).value
+    html = (await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() }, { styleMap: ["br[type='page'] => hr"] })).value
   } catch {
     throw new UserError(`לא הצלחתי לפתוח את "${file.name}". נתמך רק Word בפורמט docx (לא doc ישן), והקובץ אולי פגום.`)
   }
@@ -145,7 +149,7 @@ export async function docxToPdf(file: File, onProgress: Progress): Promise<Uint8
   if (!blocks.length) throw new UserError('לא נמצא תוכן במסמך.')
   // swap decoded images in
   const fixImg = (r: Run) => { if (r.img) r.img = (r.img as unknown as { _d?: HTMLImageElement })._d ?? r.img }
-  blocks.forEach((b) => (b.t === 'p' ? b.p.runs.forEach(fixImg) : b.rows.forEach((row) => row.forEach((c) => c.forEach((p) => p.runs.forEach(fixImg))))))
+  blocks.forEach((b) => (b.t === 'break' ? undefined : b.t === 'p' ? b.p.runs.forEach(fixImg) : b.rows.forEach((row) => row.forEach((c) => c.forEach((p) => p.runs.forEach(fixImg))))))
 
   const out = await PDFDocument.create()
   let canvas: HTMLCanvasElement | null = null
@@ -174,6 +178,7 @@ export async function docxToPdf(file: File, onProgress: Progress): Promise<Uint8
     onProgress(5 + (bi / blocks.length) * 90, `מסדר את המסמך… (${pages + 1} עמודים עד כה)`, 0)
     if (bi % 20 === 0) await tick()
     const b = blocks[bi]
+    if (b.t === 'break') { if (y > MY + 1) await newPage(); continue }
     if (b.t === 'p') {
       const lines = layout(measure, b.p, W)
       for (let li = 0; li < lines.length; li++) {
