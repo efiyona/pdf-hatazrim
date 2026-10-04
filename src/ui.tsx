@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { UserError, fmtSize, type Progress } from './pdf'
+import { UserError, download, fmtSize, openPdfJs, renderPage, type Output, type PdfDoc, type Progress } from './pdf'
 import { Icons, TOOL_COLORS } from './Icons'
 
 type ToastKind = 'success' | 'error' | 'info' | 'warn'
@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function ToolPage({ icon, title, hint, children }: { icon: string; title: string; hint: string; children: ReactNode }) {
+export function ToolPage({ icon, title, hint, children, result, onReset }: { icon: string; title: string; hint: string; children: ReactNode; result?: Output; onReset?: () => void }) {
   return (
     <div className="shell">
       <header className="hero small">
@@ -42,7 +42,7 @@ export function ToolPage({ icon, title, hint, children }: { icon: string; title:
           <div><h1>{title}</h1><p>{hint}</p></div>
         </div>
       </header>
-      <main className="sheet">{children}</main>
+      <main className="sheet">{result ? <ResultCard out={result} onReset={onReset!} /> : children}</main>
     </div>
   )
 }
@@ -126,33 +126,69 @@ export function DropZone({ accept, multiple, onFiles, text }: { accept: (f: File
 }
 
 export function FileList({ files, onChange, busy, activeIdx = -1, pct = 0 }: { files: File[]; onChange: (f: File[]) => void; busy?: boolean; activeIdx?: number; pct?: number }) {
-  const move = (i: number, d: number) => {
-    const j = i + d
-    if (j < 0 || j >= files.length) return
-    const c = [...files]; [c[i], c[j]] = [c[j], c[i]]; onChange(c)
+  const items = useRef<(HTMLLIElement | null)[]>([])
+  const [drag, setDrag] = useState<number | null>(null)
+  const cur = useRef(-1)
+  const filesRef = useRef(files)
+  filesRef.current = files
+  const reorder = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= filesRef.current.length) return
+    const c = [...filesRef.current]
+    const [m] = c.splice(from, 1)
+    c.splice(to, 0, m)
+    onChange(c)
   }
+  const start = (e: React.PointerEvent, i: number) => {
+    e.preventDefault()
+    cur.current = i
+    setDrag(i)
+    const target = e.currentTarget as HTMLElement
+    target.setPointerCapture(e.pointerId)
+  }
+  const move = (e: React.PointerEvent) => {
+    if (cur.current < 0) return
+    const y = e.clientY
+    for (let j = 0; j < items.current.length; j++) {
+      const r = items.current[j]?.getBoundingClientRect()
+      if (r && y >= r.top && y <= r.bottom) {
+        if (j !== cur.current) { reorder(cur.current, j); cur.current = j; setDrag(j) }
+        break
+      }
+    }
+    // auto-scroll near viewport edges (touch)
+    if (y < 90) window.scrollBy(0, -12)
+    else if (y > window.innerHeight - 90) window.scrollBy(0, 12)
+  }
+  const end = () => { cur.current = -1; setDrag(null) }
   return (
-    <><h3 className="flh">קבצים ({files.length})</h3>
-    <ul className="files">
-      {files.map((f, i) => {
-        const state = !busy ? 'idle' : i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'wait'
-        return (
-          <li key={f.name + i + f.size} className={state}>
-            <Thumb file={f} />
-            <div className="meta">
-              <b>{f.name}</b>
-              <span><bdi>{fmtSize(f.size)}</bdi>{state === 'done' ? ' · הושלם ✓' : state === 'active' ? ` · ${Math.max(5, Math.min(95, Math.round((pct * files.length) % 100)))}%` : state === 'wait' ? ' · ממתין' : ''}</span>
-              {busy && <div className="mini"><div style={{ width: state === 'done' ? '100%' : state === 'active' ? `${Math.max(8, Math.min(95, (pct * files.length) % 100 || 8))}%` : '0%' }} /></div>}
-            </div>
-            {!busy && <>
-              <button className="ib" onClick={() => move(i, -1)} disabled={i === 0} aria-label="למעלה">{Icons.up(18)}</button>
-              <button className="ib" onClick={() => move(i, 1)} disabled={i === files.length - 1} aria-label="למטה">{Icons.down(18)}</button>
-              <button className="ib" onClick={() => onChange(files.filter((_, k) => k !== i))} aria-label="הסר">{Icons.x(18)}</button>
-            </>}
-          </li>
-        )
-      })}
-    </ul></>
+    <>
+      <h3 className="flh">קבצים ({files.length}){files.length > 1 && !busy ? <small> · גרור את הידית כדי לסדר</small> : null}</h3>
+      <ul className="files">
+        {files.map((f, i) => {
+          const state = !busy ? 'idle' : i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'wait'
+          return (
+            <li key={f.name + f.size + f.lastModified} ref={(el) => { items.current[i] = el }} className={`${state} ${drag === i ? 'dragging' : ''}`}>
+              {!busy && files.length > 1 && (
+                <span
+                  className="grip" role="button" tabIndex={0} aria-label="גרור לשינוי סדר"
+                  onPointerDown={(e) => start(e, i)} onPointerMove={move} onPointerUp={end} onPointerCancel={end}
+                  onKeyDown={(e) => { if (e.key === 'ArrowUp') { e.preventDefault(); reorder(i, i - 1) } if (e.key === 'ArrowDown') { e.preventDefault(); reorder(i, i + 1) } }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="9" cy="6" r="1.8" /><circle cx="15" cy="6" r="1.8" /><circle cx="9" cy="12" r="1.8" /><circle cx="15" cy="12" r="1.8" /><circle cx="9" cy="18" r="1.8" /><circle cx="15" cy="18" r="1.8" /></svg>
+                </span>
+              )}
+              <Thumb file={f} />
+              <div className="meta">
+                <b>{f.name}</b>
+                <span><bdi>{fmtSize(f.size)}</bdi>{state === 'done' ? ' · הושלם ✓' : state === 'active' ? ` · ${Math.max(5, Math.min(95, Math.round((pct * files.length) % 100)))}%` : state === 'wait' ? ' · ממתין' : ''}</span>
+                {busy && <div className="mini"><div style={{ width: state === 'done' ? '100%' : state === 'active' ? `${Math.max(8, Math.min(95, (pct * files.length) % 100 || 8))}%` : '0%' }} /></div>}
+              </div>
+              {!busy && <button className="ib" onClick={() => onChange(files.filter((_, k) => k !== i))} aria-label="הסר">{Icons.x(18)}</button>}
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }
 
@@ -165,4 +201,89 @@ function Thumb({ file }: { file: File }) {
     return () => URL.revokeObjectURL(u)
   }, [file])
   return url ? <img src={url} alt="" className="thumb" /> : <div className="thumb ph">{/pdf$/i.test(file.type) ? Icons.pdf(22) : Icons.image(22)}</div>
+}
+
+function PdfPreview({ data }: { data: Uint8Array }) {
+  const [doc, setDoc] = useState<PdfDoc>()
+  const [err, setErr] = useState(false)
+  useEffect(() => {
+    let dead = false
+    openPdfJs(new File([data as BlobPart], 'preview.pdf', { type: 'application/pdf' })).then((d) => !dead && setDoc(d)).catch(() => !dead && setErr(true))
+    return () => { dead = true }
+  }, [data])
+  if (err) return <p className="pvnote">אי אפשר להציג תצוגה מקדימה, אבל הקובץ תקין וניתן להוריד.</p>
+  if (!doc) return <p className="pvnote">טוען תצוגה מקדימה…</p>
+  return <div className="pvpages">{Array.from({ length: doc.numPages }, (_, i) => <PvPage key={i} doc={doc} n={i + 1} total={doc.numPages} />)}</div>
+}
+
+function PvPage({ doc, n, total }: { doc: PdfDoc; n: number; total: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [src, setSrc] = useState<string>()
+  useEffect(() => {
+    let dead = false
+    const io = new IntersectionObserver(async ([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      try {
+        const c = await renderPage(doc, n, 1.1)
+        const url = c.toDataURL('image/jpeg', 0.8)
+        c.width = c.height = 0
+        if (!dead) setSrc(url)
+      } catch { /* preview only */ }
+    }, { rootMargin: '600px' })
+    io.observe(ref.current!)
+    return () => { dead = true; io.disconnect() }
+  }, [doc, n])
+  return (
+    <div ref={ref} className="pvpage">
+      {src ? <img src={src} alt={`עמוד ${n}`} /> : <div className="pvph">…</div>}
+      <span>{n} / {total}</span>
+    </div>
+  )
+}
+
+function ImagePreview({ images, mime }: { images: Uint8Array[]; mime: string }) {
+  const [urls, setUrls] = useState<string[]>([])
+  useEffect(() => {
+    const u = images.map((b) => URL.createObjectURL(new Blob([b as BlobPart], { type: mime })))
+    setUrls(u)
+    return () => u.forEach(URL.revokeObjectURL)
+  }, [images, mime])
+  return <div className="pvpages">{urls.map((u, i) => <div key={i} className="pvpage"><img src={u} alt={`עמוד ${i + 1}`} /><span>{i + 1} / {urls.length}</span></div>)}</div>
+}
+
+export function ResultCard({ out, onReset }: { out: Output; onReset: () => void }) {
+  const toast = useToast()
+  const save = () => { download(out.data, out.name, out.mime); toast('success', 'ההורדה התחילה') }
+  const share = async () => {
+    const file = new File([out.data as BlobPart], out.name, { type: out.mime })
+    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
+    try {
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: out.name })
+      } else {
+        download(out.data, out.name, out.mime)
+        toast('info', 'השיתוף הישיר לא נתמך בדפדפן הזה, אז הקובץ הורד. אפשר לשתף אותו משם.')
+      }
+    } catch (e) {
+      if ((e as Error)?.name === 'AbortError') return
+      toast('error', 'השיתוף נכשל. אפשר להוריד את הקובץ ולשתף ממנו.')
+    }
+  }
+  return (
+    <section className="result">
+      <div className="rhead">
+        <span className="rok">{Icons.check(22)}</span>
+        <div className="meta"><b>הקובץ מוכן</b><span dir="auto">{out.name} · <bdi>{fmtSize(out.data.length)}</bdi></span></div>
+      </div>
+      <div className="ractions">
+        <button className="go" onClick={save}>{Icons.download(20)} הורדה</button>
+        <button className="go alt" onClick={share}>{Icons.share(20)} שיתוף</button>
+      </div>
+      <div className="preview">
+        {out.images ? <ImagePreview images={out.images} mime={out.imageMime ?? 'image/jpeg'} /> : <PdfPreview data={out.data} />}
+      </div>
+      <button className="linkbtn" onClick={onReset}>חזרה לעריכה</button>
+    </section>
+  )
 }

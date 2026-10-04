@@ -237,6 +237,7 @@ export async function compressPdf(file: File, level: 'light' | 'medium' | 'stron
 export async function pdfToImages(file: File, format: 'jpeg' | 'png', scale: number, onProgress: Progress) {
   const src = await openPdfJs(file)
   const files: Record<string, Uint8Array> = {}
+  const images: Uint8Array[] = []
   const ext = format === 'jpeg' ? 'jpg' : 'png'
   const pad = String(src.numPages).length
   for (let i = 1; i <= src.numPages; i++) {
@@ -245,11 +246,16 @@ export async function pdfToImages(file: File, format: 'jpeg' | 'png', scale: num
     const c = await renderPage(src, i, scale)
     const blob = await canvasBlob(c, `image/${format}`, 0.9)
     c.width = c.height = 0
-    files[`${baseName(file)}-${String(i).padStart(pad, '0')}.${ext}`] = new Uint8Array(await blob.arrayBuffer())
+    const bytes = new Uint8Array(await blob.arrayBuffer())
+    images.push(bytes)
+    files[`${baseName(file)}-${String(i).padStart(pad, '0')}.${ext}`] = bytes
   }
   await (src as unknown as { destroy?: () => Promise<void> }).destroy?.()
   onProgress(97, 'אורז ZIP…')
   await tick()
-  if (src.numPages === 1) return { single: true as const, name: Object.keys(files)[0], data: Object.values(files)[0] }
-  return { single: false as const, name: `${baseName(file)}-images.zip`, data: zipSync(files, { level: 0 }) }
+  if (src.numPages === 1) return { single: true as const, name: Object.keys(files)[0], data: Object.values(files)[0], images }
+  return { single: false as const, name: `${baseName(file)}-images.zip`, data: zipSync(files, { level: 0 }), images }
 }
+
+export interface Output { data: Uint8Array; name: string; mime: string; images?: Uint8Array[]; imageMime?: string }
+export const pdfOut = (data: Uint8Array, name: string): Output => ({ data, name, mime: 'application/pdf' })

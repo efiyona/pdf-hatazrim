@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { DropZone, FileList, ProgressBar, ToolPage, useJob, useToast } from '../ui'
 import PageGrid from '../PageGrid'
 import {
-  IMAGE_EXT, baseName, compressPdf, download, extractPages, fmtSize, imagesToPdf,
-  mergePdfs, openPdfJs, pdfToImages, rotatePdf, type PdfDoc,
+  IMAGE_EXT, baseName, compressPdf, extractPages, fmtSize, imagesToPdf,
+  mergePdfs, openPdfJs, pdfOut, pdfToImages, rotatePdf, type Output, type PdfDoc,
 } from '../pdf'
 
 const isPdf = (f: File) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
@@ -23,6 +23,7 @@ function useBigWarn() {
 }
 
 export function ImageToPdf() {
+  const [out, setOut] = useState<Output>()
   const [files, setFiles] = useState<File[]>([])
   const [size, setSize] = useState('a4')
   const [landscape, setLandscape] = useState(false)
@@ -32,11 +33,11 @@ export function ImageToPdf() {
   const go = () => job.run(async (p) => {
     let skipped = 0
     const data = await imagesToPdf(files, { size, landscape, margin, quality }, p, (n, m) => { skipped++; toast('error', `"${n}" דולג: ${m}`) })
-    download(data, `${files.length === 1 ? baseName(files[0]) : 'images'}.pdf`)
+    setOut(pdfOut(data, `${files.length === 1 ? baseName(files[0]) : 'images'}.pdf`))
     return `ה-PDF מוכן (${fmtSize(data.length)})${skipped ? `, ${skipped} תמונות דולגו` : ''}`
   })
   return (
-    <ToolPage icon="image" title="תמונה ל-PDF" hint="JPG, PNG, HEIC, WEBP ועוד. הסדר כאן הוא סדר העמודים.">
+    <ToolPage icon="image" title="תמונה ל-PDF" hint="JPG, PNG, HEIC, WEBP ועוד. הסדר כאן הוא סדר העמודים." result={out} onReset={() => setOut(undefined)}>
       <DropZone multiple accept={isImg} text="בחר תמונות" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
         <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
@@ -54,15 +55,16 @@ export function ImageToPdf() {
 }
 
 export function Merge() {
+  const [out, setOut] = useState<Output>()
   const [files, setFiles] = useState<File[]>([])
   const job = useJob(); const warn = useBigWarn()
   const go = () => job.run(async (p) => {
     const data = await mergePdfs(files, p)
-    download(data, 'merged.pdf')
+    setOut(pdfOut(data, 'merged.pdf'))
     return `אוחדו ${files.length} קבצים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="merge" title="איחוד PDF" hint="חבר כמה קבצים לאחד. סדר הרשימה = סדר באיחוד.">
+    <ToolPage icon="merge" title="איחוד PDF" hint="חבר כמה קבצים לאחד. סדר הרשימה = סדר באיחוד." result={out} onReset={() => setOut(undefined)}>
       <DropZone multiple accept={isPdf} text="בחר קבצי PDF" onFiles={(f) => { warn(f); setFiles((x) => [...x, ...f]) }} />
       {files.length > 0 && <>
         <FileList files={files} onChange={setFiles} busy={job.busy} activeIdx={job.idx} pct={job.pct} />
@@ -101,6 +103,7 @@ function usePdfFile() {
 }
 
 export function Split() {
+  const [out, setOut] = useState<Output>()
   const { file, doc, pick, reset } = usePdfFile()
   const [sel, setSel] = useState<Set<number>>(new Set())
   const [mode, setMode] = useState<'keep' | 'delete'>('keep')
@@ -119,11 +122,11 @@ export function Split() {
     const keep = mode === 'keep' ? all.filter((i) => sel.has(i)) : all.filter((i) => !sel.has(i))
     if (!keep.length) throw new (await import('../pdf')).UserError('לא נשארו עמודים בקובץ. שנה את הבחירה.')
     const data = await extractPages(file, keep, p)
-    download(data, `${baseName(file)}-${mode === 'keep' ? 'selected' : 'edited'}.pdf`)
+    setOut(pdfOut(data, `${baseName(file)}-${mode === 'keep' ? 'selected' : 'edited'}.pdf`))
     return `נשמר PDF עם ${keep.length} עמודים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="split" title="פיצול ומחיקת עמודים" hint="סמן עמודים (לחיצה או טווח), ובחר אם לשמור אותם או למחוק אותם.">
+    <ToolPage icon="split" title="פיצול ומחיקת עמודים" hint="סמן עמודים (לחיצה או טווח), ובחר אם לשמור אותם או למחוק אותם." result={out} onReset={() => setOut(undefined)}>
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'} · {fmtSize(file.size)}</span><button onClick={reset}>החלף קובץ</button></div>
@@ -145,6 +148,7 @@ export function Split() {
 }
 
 export function Rotate() {
+  const [out, setOut] = useState<Output>()
   const { file, doc, pick, reset } = usePdfFile()
   const [rot, setRot] = useState<Record<number, number>>({})
   const job = useJob()
@@ -155,11 +159,11 @@ export function Rotate() {
   const go = () => job.run(async (p) => {
     if (!file) return
     const data = await rotatePdf(file, rot, p)
-    download(data, `${baseName(file)}-rotated.pdf`)
+    setOut(pdfOut(data, `${baseName(file)}-rotated.pdf`))
     return `סובבו ${changed} עמודים (${fmtSize(data.length)})`
   })
   return (
-    <ToolPage icon="rotate" title="סיבוב עמודים" hint="לחץ על עמוד כדי לסובב אותו 90°, או סובב הכל בבת אחת.">
+    <ToolPage icon="rotate" title="סיבוב עמודים" hint="לחץ על עמוד כדי לסובב אותו 90°, או סובב הכל בבת אחת." result={out} onReset={() => setOut(undefined)}>
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={pick} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{doc ? `${doc.numPages} עמודים` : 'טוען…'}</span><button onClick={reset}>החלף קובץ</button></div>
@@ -176,6 +180,7 @@ export function Rotate() {
 }
 
 export function Compress() {
+  const [out, setOut] = useState<Output>()
   const [file, setFile] = useState<File>()
   const [level, setLevel] = useState<'light' | 'medium' | 'strong'>('medium')
   const job = useJob(); const toast = useToast(); const warn = useBigWarn()
@@ -183,11 +188,11 @@ export function Compress() {
     if (!file) return
     const data = await compressPdf(file, level, p)
     if (data.length >= file.size) { toast('warn', 'הקובץ לא הוקטן (הוא כבר קטן/מכווץ), לכן לא הורדתי גרסה חדשה. נסה רמה חזקה יותר.'); return }
-    download(data, `${baseName(file)}-compressed.pdf`)
+    setOut(pdfOut(data, `${baseName(file)}-compressed.pdf`))
     return `הקובץ הוקטן מ-${fmtSize(file.size)} ל-${fmtSize(data.length)} (${Math.round((1 - data.length / file.size) * 100)}%)`
   })
   return (
-    <ToolPage icon="compress" title="כיווץ PDF" hint="כל עמוד הופך לתמונה מכווצת. מצוין לסריקות ותמונות. שים לב: הטקסט יהפוך לתמונה (אי אפשר לסמן/לחפש בו).">
+    <ToolPage icon="compress" title="כיווץ PDF" hint="כל עמוד הופך לתמונה מכווצת. מצוין לסריקות ותמונות. שים לב: הטקסט יהפוך לתמונה (אי אפשר לסמן/לחפש בו)." result={out} onReset={() => setOut(undefined)}>
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
@@ -201,6 +206,7 @@ export function Compress() {
 }
 
 export function PdfToImages() {
+  const [out, setOut] = useState<Output>()
   const [file, setFile] = useState<File>()
   const [format, setFormat] = useState<'jpeg' | 'png'>('jpeg')
   const [scale, setScale] = useState(2)
@@ -208,11 +214,11 @@ export function PdfToImages() {
   const go = () => job.run(async (p) => {
     if (!file) return
     const r = await pdfToImages(file, format, scale, p)
-    download(new Blob([r.data as BlobPart], { type: r.single ? `image/${format}` : 'application/zip' }), r.name)
+    setOut({ data: r.data, name: r.name, mime: r.single ? `image/${format}` : 'application/zip', images: r.images, imageMime: `image/${format}` })
     return r.single ? 'התמונה מוכנה' : `ה-ZIP מוכן (${fmtSize(r.data.length)})`
   })
   return (
-    <ToolPage icon="toimg" title="PDF לתמונות" hint="כל עמוד הופך לתמונה. כמה עמודים = קובץ ZIP.">
+    <ToolPage icon="toimg" title="PDF לתמונות" hint="כל עמוד הופך לתמונה. כמה עמודים = קובץ ZIP." result={out} onReset={() => setOut(undefined)}>
       {!file ? <DropZone accept={isPdf} text="בחר קובץ PDF" onFiles={(f) => { warn(f); setFile(f[0]) }} /> : (
         <>
           <div className="bar2"><b>{file.name}</b> <span>{fmtSize(file.size)}</span><button onClick={() => setFile(undefined)}>החלף קובץ</button></div>
